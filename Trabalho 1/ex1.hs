@@ -35,7 +35,18 @@ isDecrescente (l:ls)
     | otherwise = isDecrescente ls
 
 -- Questão 4
---histograma :: [String] -> [(String, Int)]
+histograma :: [String] -> [(String, Int)]
+
+contaPares :: [String] -> (String, Int) -> (String, Int)
+
+contaPares [] (p, ocorrencias)  = (p, ocorrencias)
+contaPares (inicio:pessoas) (p, ocorrencias) 
+        | p == inicio = contaPares pessoas (p, ocorrencias+1)
+        | otherwise = contaPares pessoas (p, ocorrencias)
+
+histograma [] = []
+histograma (p:pessoas) = (contaPares (p:pessoas) (p, 0)):histograma ([pessoa | pessoa <- pessoas, pessoa /= p])
+
 
 
 -- Questão 5
