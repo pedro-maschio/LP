@@ -1,3 +1,4 @@
+import Data.List
 {--
     Aluno: Pedro de Torres Maschio
     Matrícula: 190018763
@@ -24,24 +25,32 @@ converterNotaParaMencao nota
     | nota >= 0.1 && nota < 3 = "II"
     | otherwise = "SR"
 
--- Questão 3 (considerei o descrescente como estritamente descrescente)
+-- Questão 3 (considerei o decrescente como estritamente decrescente)
 isDecrescente :: [Int] -> Bool
 
 isDecrescente [] = True
 isDecrescente (l:ls)
-    | length ls == 0 = True
+    | ls == [] = True
     | l <= head(ls) = False 
     | otherwise = isDecrescente ls
 
--- Questao 4
-histograma :: [String] -> [(String, Int)]
+-- Questão 4
+--histograma :: [String] -> [(String, Int)]
 
-conta :: String -> [String] -> Int
-conta string [] = 0
-conta string (s:ss) 
-    | string == s = 1 + conta string ss 
-    | otherwise = conta string ss 
 
-histograma [] = []
-histograma string:strings
-    | conta string 
+-- Questão 5
+myZipWith :: (a -> b -> c) -> [a] -> [b] -> [c]
+
+myZipWith f [] [] = []
+myZipWith f (a:as) (b:bs) = (f a b) : (myZipWith f as bs)
+
+-- Questão 6
+aprovadosOrdemDeMedia :: [(String, Float, Float)] -> [(String, Float)]
+
+aprovadosOrdemDeMedia [] = []
+aprovadosOrdemDeMedia ((a, b, c):alunos) 
+    | media >= 5 = sortBy (\(_,a) (_,b) -> compare a b)  ((a, media):(aprovadosOrdemDeMedia alunos))
+    | otherwise = aprovadosOrdemDeMedia alunos 
+    where 
+        media = ((b + c)/2.0)
+        
