@@ -52,6 +52,8 @@ histograma (p:pessoas) = (contaPares (p:pessoas) (p, 0)):histograma ([pessoa | p
 myZipWith :: (a -> b -> c) -> [a] -> [b] -> [c]
 
 myZipWith f [] [] = []
+myZipWith f _ [] = []
+myZipWith f [] _ = []
 myZipWith f (a:as) (b:bs) = (f a b) : (myZipWith f as bs)
 
 -- Questão 6
@@ -75,10 +77,12 @@ somaMatricial (u:us) (v:vs) = zipWith (+) u v:(somaMatricial us vs)
 -- b
 matrizTransposta :: Num u => [[u]] -> [[u]]
 
+matrizTransposta [] = []
 matrizTransposta ([]:_) = []
 matrizTransposta u = (map head u):matrizTransposta (map tail u)
 
 -- c 
 multiplicacaoMatricial :: Num u => [[u]] -> [[u]] -> [[u]]
 
-multiplicacaoMatricial (a:as) b = (map (+) (foldr (*) a (map head b))):(multiplicacaoMatricial as (map tail b))
+multiplicacaoMatricial [[]] [[]] = [[]]
+multiplicacaoMatricial a b = [[sum (zipWith (*) linhaA linhaB) | linhaB <- (matrizTransposta b)] | linhaA <- a]
