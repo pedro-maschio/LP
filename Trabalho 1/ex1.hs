@@ -1,4 +1,4 @@
-import Data.List
+import Data.List (sortBy)
 {--
     Aluno: Pedro de Torres Maschio
     Matrícula: 190018763
@@ -48,7 +48,6 @@ histograma [] = []
 histograma (p:pessoas) = (contaPares (p:pessoas) (p, 0)):histograma ([pessoa | pessoa <- pessoas, pessoa /= p])
 
 
-
 -- Questão 5
 myZipWith :: (a -> b -> c) -> [a] -> [b] -> [c]
 
@@ -64,4 +63,22 @@ aprovadosOrdemDeMedia ((a, b, c):alunos)
     | otherwise = aprovadosOrdemDeMedia alunos 
     where 
         media = ((b + c)/2.0)
-        
+
+
+-- Questão 7
+somaMatricial :: Num u => [[u]] -> [[u]] -> [[u]]
+
+-- a
+somaMatricial [] [] = []
+somaMatricial (u:us) (v:vs) = zipWith (+) u v:(somaMatricial us vs)
+
+-- b
+matrizTransposta :: Num u => [[u]] -> [[u]]
+
+matrizTransposta ([]:_) = []
+matrizTransposta u = (map head u):matrizTransposta (map tail u)
+
+-- c 
+multiplicacaoMatricial :: Num u => [[u]] -> [[u]] -> [[u]]
+
+multiplicacaoMatricial (a:as) b = (map (+) (foldr (*) a (map head b))):(multiplicacaoMatricial as (map tail b))
