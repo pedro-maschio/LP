@@ -203,22 +203,35 @@ plantaoValido plantoes
 
 -}
 
--- type Prescricao = (Medicamento, [Horario])
--- type Receituario = [Prescricao]
--- type PlanoMedicamento = [(Horario, [Medicamento])]
+-- Ordena os horários e remove as repetições
+ordena [] = []
+ordena (x:resto) = ordena [y | y <- resto, y < x]++[x]++ordena [y | y <- resto, y > x]
 
 -- Transforma uma única prescrição em um plano de medicamento parcial
 prescricaoEmPlano :: Prescricao -> PlanoMedicamento
 prescricaoEmPlano (_, []) = []
 prescricaoEmPlano (med, h1:hors) = (h1, [med]):(prescricaoEmPlano (med, hors))
 
-montaPlano :: PlanoMedicamento -> PlanoMedicamento
-montaPlano [] = []
-montaPlano ((hor, med):planos) = (hor, med:[m | (h, m) <- planos, h == hor]):(montaPlano planos)
+-- Pega todos os horários do Receituario
+pegaHorarios :: Receituario -> [Horario]
+pegaHorarios [] = []
+pegaHorarios ((med, hors):recs) = [h | h <- hors] ++ pegaHorarios recs
+
+-- Dada a lista de horários, monta o plano de medicamento corretamente
+montaPlano :: [Horario] -> PlanoMedicamento -> PlanoMedicamento
+montaPlano [] [] = []
+montaPlano h1 [] = []
+montaPlano [] h2 = []
+montaPlano (h1:restoHorarios) ((h, m:meds):restoPlano) = (h1, [me | (hor, me:ms) <- ((h, m:meds):restoPlano), hor == h1]):(montaPlano restoHorarios restoPlano)
+
+-- Apenas concatena o resultado de prescricaoEmPlano
+parsingPlano :: Receituario -> PlanoMedicamento
+parsingPlano [] = []
+parsingPlano (p1:recs) = (prescricaoEmPlano p1)++(parsingPlano recs)
 
 geraPlanoReceituario :: Receituario -> PlanoMedicamento
 geraPlanoReceituario [] = []
-geraPlanoReceituario ((med, hors):recs) = montaPlano((prescricaoEmPlano (med, hors)):(prescricaoEmPlano recs))
+geraPlanoReceituario (p1:recs) = montaPlano (ordena(pegaHorarios (p1:recs))) (ordena(parsingPlano (p1:recs)))
 
 
 {- QUESTÃO 8  VALOR: 1,0 ponto
