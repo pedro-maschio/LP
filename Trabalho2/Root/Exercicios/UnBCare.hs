@@ -1,6 +1,7 @@
 module Root.Exercicios.UnBCare where
 
 import Root.Modelo.ModeloDados
+import Data.List (sortBy)
 
 {-
  *** Aluno: Pedro de Torres Maschio
@@ -107,16 +108,9 @@ consultarMedicamento m ((med, qtd):es)
 
 -}
 
-
--- type EstoqueMedicamentos = [(Medicamento, Quantidade)]
--- type Receituario = [Prescricao]
--- type Prescricao = (Medicamento, [Horario])
--- type Medicamento = String
--- type Horario = Int
-
 demandaMedicamentos :: Receituario -> EstoqueMedicamentos
 demandaMedicamentos [] = []
-demandaMedicamentos ((med, hours):recs) = []
+demandaMedicamentos ((med, hours):recs) = sortBy (\(a,_) (b,_) -> compare a b) ((med, length hours):(demandaMedicamentos recs))
 
 {-
    QUESTÃO 5  VALOR: 1,0 ponto, sendo 0,5 para cada função.
@@ -131,11 +125,24 @@ demandaMedicamentos ((med, hours):recs) = []
 
  -}
 
-receituarioValido :: Receituario -> Bool
-receituarioValido = undefined
 
+-- Retorna True se os planos/receituários estão ordenados (se estão estritamente ordenados, necessariamente são distintos/unicos)
+estaoOrdenados :: (Ord recplan) => [recplan] -> Bool 
+estaoOrdenados [] = True 
+estaoOrdenados [x] = True
+estaoOrdenados (x:y:z) = (x < y) && estaoOrdenados (y:z)
+
+
+receituarioValido :: Receituario -> Bool
+receituarioValido recs
+      | estaoOrdenados recs && (length (filter estaoOrdenados [horarios | (_, horarios) <- recs]) == length recs)  = True
+      | otherwise = False
+
+-- type PlanoMedicamento = [(Horario, [Medicamento])]
 planoValido :: PlanoMedicamento -> Bool
-planoValido = undefined
+planoValido planos 
+   | estaoOrdenados planos && (length (filter estaoOrdenados [meds | (_, meds) <- planos]) == length planos) = True 
+   | otherwise = False
 
 {-
 
@@ -151,8 +158,39 @@ planoValido = undefined
 
  -}
 
+
+-- Lista os medicamentos de Medicar
+listarMedicamentosMedicar :: [Cuidado] -> [Medicamento]
+listarMedicamentosMedicar [] = []
+listarMedicamentosMedicar ((Comprar med qtd):cuidados) = listarMedicamentosMedicar cuidados
+listarMedicamentosMedicar ((Medicar med):cuidados) = med:(listarMedicamentosMedicar cuidados)
+
+-- Verifica as ocorrências de Comprar
+checkCompra :: Medicamento -> [Cuidado] -> Bool 
+checkCompra _ [] = True 
+checkCompra m ((Comprar med qtd):cuidados) = checkCompra m cuidados 
+checkCompra m ((Medicar med):cuidados)
+   | m == med = False
+   | otherwise =  checkCompra m cuidados 
+
+-- Verifica as ocorrências de Medicar
+checkMedicar :: Medicamento -> [Cuidado] -> Bool 
+checkMedicar _ [] = True 
+checkMedicar m ((Medicar med):cuidados) = checkMedicar m cuidados 
+checkMedicar m ((Comprar med qtd):cuidados)
+   | m == med = False
+   | otherwise =  checkCompra m cuidados 
+
+-- Retorna true se não houver ocorrência de compra e medicagem do mesmo medicamento
+checkCuidados :: [Cuidado] -> Bool 
+checkCuidados [] = True 
+checkCuidados ((Comprar med qtd):cuidados) = (checkCompra med cuidados) && (checkCuidados cuidados)
+checkCuidados ((Medicar med):cuidados) = (checkMedicar med cuidados) && (checkCuidados cuidados)
+
 plantaoValido :: Plantao -> Bool
-plantaoValido = undefined
+plantaoValido plantoes 
+   | estaoOrdenados [horario | (horario, _) <- plantoes] && length(filter checkCuidados [cuidados | (h, cuidados) <- plantoes]) == (length [cuidados | (h, cuidados) <- plantoes]) && length(filter estaoOrdenados (map listarMedicamentosMedicar [cuidados | (h, cuidados) <- plantoes])) == length(map listarMedicamentosMedicar [cuidados | (h, cuidados) <- plantoes]) = True
+   | otherwise = False
 
 {-
    QUESTÃO 7  VALOR: 1,0 ponto
@@ -165,8 +203,23 @@ plantaoValido = undefined
 
 -}
 
+-- type Prescricao = (Medicamento, [Horario])
+-- type Receituario = [Prescricao]
+-- type PlanoMedicamento = [(Horario, [Medicamento])]
+
+-- Transforma uma única prescrição em um plano de medicamento parcial
+prescricaoEmPlano :: Prescricao -> PlanoMedicamento
+prescricaoEmPlano (_, []) = []
+prescricaoEmPlano (med, h1:hors) = (h1, [med]):(prescricaoEmPlano (med, hors))
+
+montaPlano :: PlanoMedicamento -> PlanoMedicamento
+montaPlano [] = []
+montaPlano ((hor, med):planos) = (hor, med:[m | (h, m) <- planos, h == hor]):(montaPlano planos)
+
 geraPlanoReceituario :: Receituario -> PlanoMedicamento
-geraPlanoReceituario = undefined
+geraPlanoReceituario [] = []
+geraPlanoReceituario ((med, hors):recs) = montaPlano((prescricaoEmPlano (med, hors)):(prescricaoEmPlano recs))
+
 
 {- QUESTÃO 8  VALOR: 1,0 ponto
 
