@@ -244,8 +244,36 @@ geraPlanoReceituario (p1:recs) = montaPlano (ordena(pegaHorarios (p1:recs))) (or
 
 -}
 
+
+-- type PlanoMedicamento = [(Horario, [Medicamento])]
+-- type Prescricao = (Medicamento, [Horario])
+-- type Receituario = [(Medicamento, [Horario])]
+
+-- Pega todos os medicamentos do PlanoMedicamento
+pegaMedicamentos :: PlanoMedicamento -> [Medicamento]
+pegaMedicamentos [] = []
+pegaMedicamentos ((hor, meds):recs) = [med | med <- meds] ++ pegaMedicamentos recs
+
+-- Transforma um par (Horario, [Medicamento]) em um receituário parcial
+parEmReceituario :: (Horario, [Medicamento]) -> Receituario
+parEmReceituario (_, []) = []
+parEmReceituario (hor, m1:meds) = (m1, [hor]):(parEmReceituario (hor, meds))
+
+-- Dada a lista de medicamentos, monta o receituário corretamente
+montaReceituario :: [Medicamento] -> Receituario -> Receituario
+montaReceituario [] [] = []
+montaReceituario h1 [] = []
+montaReceituario [] h2 = []
+montaReceituario (m1:restoMedicamentos) ((med, h:hs):restoReceituario) = (m1, [ho | (me, ho:hours) <- ((med, h:hs):restoReceituario), me == m1]):(montaReceituario restoMedicamentos restoReceituario)
+
+-- Apenas concatena o resultado de prescricaoEmPlano
+parsingReceituario :: PlanoMedicamento -> Receituario
+parsingReceituario [] = []
+parsingReceituario (p1:recs) = (parEmReceituario p1)++(parsingReceituario recs)
+
 geraReceituarioPlano :: PlanoMedicamento -> Receituario
-geraReceituarioPlano = undefined
+geraReceituarioPlano [] = []
+geraReceituarioPlano (p1:planos) = montaReceituario (ordena(pegaMedicamentos (p1:planos))) (ordena (parsingReceituario(p1:planos)))
 
 {-  QUESTÃO 9 VALOR: 1,0 ponto
 
