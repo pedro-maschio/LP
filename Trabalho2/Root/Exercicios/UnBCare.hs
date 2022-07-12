@@ -245,10 +245,6 @@ geraPlanoReceituario (p1:recs) = montaPlano (ordena(pegaHorarios (p1:recs))) (or
 -}
 
 
--- type PlanoMedicamento = [(Horario, [Medicamento])]
--- type Prescricao = (Medicamento, [Horario])
--- type Receituario = [(Medicamento, [Horario])]
-
 -- Pega todos os medicamentos do PlanoMedicamento
 pegaMedicamentos :: PlanoMedicamento -> [Medicamento]
 pegaMedicamentos [] = []
@@ -266,7 +262,7 @@ montaReceituario h1 [] = []
 montaReceituario [] h2 = []
 montaReceituario (m1:restoMedicamentos) ((med, h:hs):restoReceituario) = (m1, [ho | (me, ho:hours) <- ((med, h:hs):restoReceituario), me == m1]):(montaReceituario restoMedicamentos restoReceituario)
 
--- Apenas concatena o resultado de prescricaoEmPlano
+-- Apenas concatena o resultado de parEmReceituario
 parsingReceituario :: PlanoMedicamento -> Receituario
 parsingReceituario [] = []
 parsingReceituario (p1:recs) = (parEmReceituario p1)++(parsingReceituario recs)
@@ -284,8 +280,27 @@ deve ser Just v, onde v é o valor final do estoque de medicamentos
 
 -}
 
+-- Verifica se é possível fornecer esses cuidados dado o Estoque de Medicamentos 
+ehPossivel :: [Cuidado] -> EstoqueMedicamentos -> Bool 
+ehPossivel [] _ = True 
+ehPossivel ((Comprar med qtd):cuidados) estoque = ehPossivel cuidados (comprarMedicamento med qtd estoque)
+ehPossivel ((Medicar med):cuidados) estoque
+   | consultarMedicamento med estoque == 0 = False 
+   | otherwise = ehPossivel cuidados estoque
+
+
+-- Realiza os cuidados medicar e comprar, em ambos os casos atualiza o estoque
+realizaCuidados :: [Cuidado] -> EstoqueMedicamentos -> EstoqueMedicamentos
+realizaCuidados [] estoque = estoque 
+realizaCuidados ((Comprar med qtd):cuidados) estoque = realizaCuidados cuidados (comprarMedicamento med qtd estoque)
+realizaCuidados ((Medicar med):cuidados) estoque = realizaCuidados cuidados (atualiza med estoque)
+   
 executaPlantao :: Plantao -> EstoqueMedicamentos -> Maybe EstoqueMedicamentos
-executaPlantao = undefined
+executaPlantao [] estoque = Just estoque 
+executaPlantao ((_, cuidados):plantoes) estoque
+   | not(ehPossivel cuidados estoque) = Nothing 
+   | otherwise = executaPlantao plantoes (realizaCuidados cuidados estoque)
+
 
 {-
 QUESTÃO 10 VALOR: 1,0 ponto
@@ -298,6 +313,11 @@ Note que alguns cuidados podem ser comprar medicamento e que eles podem ocorrer 
 juntamente com ministrar medicamento.
 
 -}
+
+-- type Plantao = [(Horario, [Cuidado])]
+-- type PlanoMedicamento = [(Horario, [Medicamento])]
+-- type EstoqueMedicamentos = [(Medicamento, Quantidade)]
+-- data Cuidado = Comprar Medicamento Quantidade | Medicar Medicamento
 
 satisfaz :: Plantao -> PlanoMedicamento -> EstoqueMedicamentos -> Bool
 satisfaz = undefined
