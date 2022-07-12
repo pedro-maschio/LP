@@ -39,7 +39,6 @@ Caso o remédio ainda não exista no estoque, o novo estoque a ser retornado dev
 -}
 
 
-
 existeMedicamento :: Medicamento -> EstoqueMedicamentos -> Bool 
 
 existeMedicamento _ [] = False 
@@ -63,12 +62,6 @@ onde v é o novo estoque.
 
 -}
 
-atualiza :: Medicamento -> EstoqueMedicamentos -> EstoqueMedicamentos
-
-atualiza _ [] = []
-atualiza med ((me, qt):es)
-   | med == me = (me, qt-1):es 
-   | otherwise = (me, qt):(atualiza med es)
 
 tomarMedicamento :: Medicamento -> EstoqueMedicamentos -> Maybe EstoqueMedicamentos
 tomarMedicamento _ [] = Nothing 
@@ -110,7 +103,8 @@ consultarMedicamento m ((med, qtd):es)
 
 demandaMedicamentos :: Receituario -> EstoqueMedicamentos
 demandaMedicamentos [] = []
-demandaMedicamentos ((med, hours):recs) = sortBy (\(a,_) (b,_) -> compare a b) ((med, length hours):(demandaMedicamentos recs))
+-- demandaMedicamentos ((med, hours):recs) = sortBy (\(a,_) (b,_) -> compare a b) ((med, length hours):(demandaMedicamentos recs))
+demandaMedicamentos ((med, hours):recs) = ((med, length hours):(demandaMedicamentos recs))
 
 {-
    QUESTÃO 5  VALOR: 1,0 ponto, sendo 0,5 para cada função.
@@ -280,6 +274,13 @@ deve ser Just v, onde v é o valor final do estoque de medicamentos
 
 -}
 
+-- Diminui em um a quantidade de um medicamento no estoque
+atualizaEstoque :: Medicamento -> EstoqueMedicamentos -> EstoqueMedicamentos
+atualizaEstoque _ [] = []
+atualizaEstoque med ((me, qt):es)
+   | med == me = (me, qt-1):es 
+   | otherwise = (me, qt):(atualizaEstoque med es)
+
 -- Verifica se é possível fornecer esses cuidados dado o Estoque de Medicamentos 
 ehPossivel :: [Cuidado] -> EstoqueMedicamentos -> Bool 
 ehPossivel [] _ = True 
@@ -293,7 +294,7 @@ ehPossivel ((Medicar med):cuidados) estoque
 realizaCuidados :: [Cuidado] -> EstoqueMedicamentos -> EstoqueMedicamentos
 realizaCuidados [] estoque = estoque 
 realizaCuidados ((Comprar med qtd):cuidados) estoque = realizaCuidados cuidados (comprarMedicamento med qtd estoque)
-realizaCuidados ((Medicar med):cuidados) estoque = realizaCuidados cuidados (atualiza med estoque)
+realizaCuidados ((Medicar med):cuidados) estoque = realizaCuidados cuidados (atualizaEstoque med estoque)
    
 executaPlantao :: Plantao -> EstoqueMedicamentos -> Maybe EstoqueMedicamentos
 executaPlantao [] estoque = Just estoque 
@@ -314,13 +315,35 @@ juntamente com ministrar medicamento.
 
 -}
 
--- type Plantao = [(Horario, [Cuidado])]
--- type PlanoMedicamento = [(Horario, [Medicamento])]
--- type EstoqueMedicamentos = [(Medicamento, Quantidade)]
--- data Cuidado = Comprar Medicamento Quantidade | Medicar Medicamento
+-- Dado um horário e lista de cuidados, retorna uma lista de horarios e medicamentos a partir desses cuidados
+obtemParPlano :: Horario -> [Cuidado] -> [(Horario, Medicamento)]
+obtemParPlano _ [] = []
+obtemParPlano h ((Medicar med):cuidados) = (h, med):(obtemParPlano h cuidados)
+obtemParPlano h ((Comprar med qtd):cuidados) = obtemParPlano h cuidados
+
+-- Dado um plantão, retorna uma lista de horários e medicamentos
+parsingPlantao :: Plantao -> [(Horario, Medicamento)]
+parsingPlantao [] = []
+parsingPlantao ((hor, cuidados):plantoes) = (obtemParPlano hor cuidados) ++ (parsingPlantao plantoes)
+
+-- Dado um  horário e uma lista de medicamentos, retorna uma lista de pares com o mesmo horário e medicamentos
+obtemParMeds :: Horario -> [Medicamento] -> [(Horario, Medicamento)]
+obtemParMeds _ [] = []
+obtemParMeds h (med:meds) = (h, med):(obtemParMeds h meds)
+
+-- Dado um plano, retorna uma lista de horários e medicamentos
+parsingPlanoTupla :: PlanoMedicamento -> [(Horario, Medicamento)]
+parsingPlanoTupla [] = []
+parsingPlanoTupla ((hor, meds):planos) = (obtemParMeds hor meds)++(parsingPlanoTupla planos)
+
+-- Verificamos se os plantoes correspondem com os planos, podemos usar o operador de igualdade pois
+-- a igualdade está definida para as listas de pares (Int, string)
+ehIgual :: Plantao -> PlanoMedicamento -> Bool
+ehIgual plantao plano = (parsingPlantao plantao) == (parsingPlanoTupla plano)
 
 satisfaz :: Plantao -> PlanoMedicamento -> EstoqueMedicamentos -> Bool
-satisfaz = undefined
+satisfaz _ [] _ = False 
+satisfaz plantao plano estoque = (executaPlantao plantao estoque /= Nothing) && (ehIgual plantao plano) 
 
 {-
 
@@ -332,5 +355,22 @@ QUESTÃO 11 VALOR: 1,0 ponto
 
 -}
 
+-- type PlanoMedicamento = [(Horario, [Medicamento])]
+-- type EstoqueMedicamentos = [(Medicamento, Quantidade)]
+-- type Plantao = [(Horario, [Cuidado])]
+-- data Cuidado = Comprar Medicamento Quantidade | Medicar Medicamento
+
+
+-- consultarMedicamento :: Medicamento -> EstoqueMedicamentos -> Quantidade
+-- Se não houver estoque, compramos uma únidade do medicamento, se tiver, medicamos uma unidade também. Dessa forma criamos
+-- uma lista de cuidados que faz sentido e no final geramos um plantão correto
+constroiPlantao :: [Medicamento] -> EstoqueMedicamentos -> [Cuidado]
+constroiPlantao [] estoque = []
+constroiPlantao (med:meds) estoque 
+   | (consultarMedicamento med estoque) <= 0 = (Comprar med 1):(constroiPlantao meds estoque)
+   | (consultarMedicamento med estoque) > 0 = (Medicar med):(constroiPlantao meds estoque)
+
+
 plantaoCorreto :: PlanoMedicamento -> EstoqueMedicamentos -> Plantao
-plantaoCorreto = undefined
+plantaoCorreto [] estoque = []
+plantaoCorreto ((hor, meds):planos) estoque = (hor, constroiPlantao meds estoque):(plantaoCorreto planos estoque)
