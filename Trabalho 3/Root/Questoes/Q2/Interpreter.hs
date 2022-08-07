@@ -62,6 +62,11 @@ eval context x = case x of
 -- adicione aqui um padrao e comportamento associado a expressao Not
 -- adicione aqui um padrao e comportamento associado ao literal true
 -- adicione aqui um padrao e comportamento associado ao literal false
+  EOr exp0 exp -> ValorBool (b (eval context exp0) || b (eval context exp))
+  EAnd exp0 exp -> ValorBool (b (eval context exp0) && b (eval context exp))
+  ENot exp -> ValorBool(not(b (eval context exp)))
+  ETrue -> ValorBool True
+  EFalse -> ValorBool False
 
 
 getStr :: Ident -> String
