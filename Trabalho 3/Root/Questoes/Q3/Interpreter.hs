@@ -11,7 +11,7 @@ type ErrorMessage = String
 -}
 executeP :: RContext -> Program -> Either ErrorMessage RContext
 -- executeP context (Prog stm) = execute context stm
-executeP = undefined 
+executeP context (Prog stm) = execute context stm
 
 {- Dica: o tipo de execute deve mudar para
  execute :: RContext -> Stm -> Either ErrorMessage RContext
@@ -20,27 +20,49 @@ executeP = undefined
  e, consequentemente o execute tambem. Assim, todos tipos de comandos
  serao afetados
 -}
-execute :: RContext -> Stm -> RContext
+execute :: RContext -> Stm -> Either ErrorMessage RContext
 execute context x = case x of
-  SAss id exp -> update context (getStr id) (eval context exp)
-  SBlock [] -> context
-  SBlock (s : stms) -> execute (execute context s) (SBlock stms)
-  SWhile exp stm ->
-    if ((eval context exp) /= 0)
-      then execute (execute context stm) (SWhile exp stm)
-      else context
+  SAss id exp -> case (eval context exp) of 
+                    Right ve1 -> Right(update context (getStr id) ve1)
+                    Left err -> Left err
+                    
+  SBlock [] -> Right(context)
+  SBlock (s : stms) -> case execute context s of 
+                        Right ve1 -> execute ve1 (SBlock stms)
+                        Left err -> Left err
+  SWhile exp stm -> case eval context exp of 
+                      Right ve1 -> if ((ve1) /= 0) then case (execute context stm) of
+                                  Right ve11 -> execute ve11 (SWhile exp stm)
+                                  Left err -> Left err
+                               else Right context
+
+                      Left err -> Left err 
 
 {- Dica: o tipo de eval deve mudar para
  eval :: RContext -> Exp -> Either ErrorMessage Integer
 -}
-eval :: RContext -> Exp -> Integer
+eval :: RContext -> Exp -> Either ErrorMessage Integer
 eval context x = case x of
-  EAdd exp0 exp -> eval context exp0 + eval context exp
-  ESub exp0 exp -> eval context exp0 - eval context exp
-  EMul exp0 exp -> eval context exp0 * eval context exp
-  EDiv exp0 exp -> eval context exp0 `div` eval context exp
-  EInt n -> n
-  EVar id -> lookup context (getStr id)
+  EAdd exp0 exp -> case (eval context exp0) of 
+                   Right ve1 -> case (eval context exp) of 
+                                  Right ve11 -> Right(ve1 + ve11) 
+                                  Left err -> Left err 
+                   Left err -> Left err
+
+  ESub exp0 exp -> case (eval context exp0) of 
+                   Right ve1 -> case (eval context exp) of 
+                                  Right ve11 -> Right(ve1 - ve11) 
+                                  Left err -> Left err 
+                   Left err -> Left err
+
+  EMul exp0 exp -> case (eval context exp0) of 
+                   Right ve1 -> case (eval context exp) of 
+                                  Right ve11 -> Right(ve1 * ve11) 
+                                  Left err -> Left err 
+                   Left err -> Left err
+                
+  EVar id -> Right(lookup context (getStr id))
+                
 {-  algumas dicas abaixo...para voce adaptar o codigo acima
     EDiv e1 e2 -> case eval context e1 of
                     Right ve1 -> case eval context e2 of
@@ -52,6 +74,15 @@ eval context x = case x of
                     Left msg -> Left msg
     EInt n  ->  Right n
 -}
+  EInt n  ->  Right n
+  EDiv e1 e2 -> case (eval context e1) of
+                  Right ve1 -> case (eval context e2) of
+                                  Right ve2 -> if (ve2 == 0)
+                                                then Left "divisao por 0"
+                                                else Right (ve1 `div` ve2)
+                                  Left msg -> Left msg
+                  Left msg -> Left msg
+  
 
 
 -- Dica: voce nao precisa mudar o codigo a partir daqui
