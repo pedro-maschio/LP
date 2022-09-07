@@ -171,7 +171,7 @@ tke environment@(sc, classCtx) exp tp =
    in case r of
         OK (TClass eid) -> case tp of
           TClass tid -> case (lookupClassDecl classCtx eid, lookupClassDecl classCtx tid) of
-            (OK ecid, OK tcid) -> OK environment
+            (OK ecid, OK tcid) -> if (isSubClass classCtx ecid tcid) then OK environment else Erro ("Erro \"QUESTAO1\" ")
             (_, _) -> Erro "Erro ao verificar expressão: classes fora do contexto."
           _ -> Erro $ "Erro em verificação de expressão: o tipo '" ++ show r ++ "' deveria ser um subtipo de '" ++ show tp ++ "'"
         OK tipo ->
@@ -242,12 +242,12 @@ tinf environment@(_, classCtx) x = case x of
                     )
                     l
                 )
-        Erro msg -> OK Tvoid
+        Erro msg -> Erro ("Erro \"QUESTAO4\" ")
       Erro msg -> Erro $ "@typechecker: Erro ao obter informações da classe'" ++ show cid ++ "': " ++ msg
     OK _ -> Erro $ "@typechecker: Não é possível invocar métodos da variável'" ++ show lid ++ "', pois esta não tem o tipo de uma classe"
     Erro msg -> Erro msg
   ECast id exp -> case (lookupClassDecl classCtx id, tinf environment exp) of
-    (OK cd@(ClassD cid _ _), OK tp) -> OK $ TClass cid
+    (OK cd@(ClassD cid _ _), OK tp) -> if not(isError (compatibleCast environment cd exp)) then Erro ("Erro \"QUESTAO3\" ") else OK $ TClass id
     _ -> Erro "@typechecker: cast invalido."
   ENew id -> case lookupClassDecl classCtx id of
     OK _ -> OK $ TClass id
